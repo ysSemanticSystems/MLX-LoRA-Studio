@@ -25,7 +25,8 @@ import Foundation
 ///
 /// Weights are computed from the parameter count parsed out of the model
 /// name (`Qwen3-4B` → 4B, `Llama-3.1-70B` → 70B) and the quantization
-/// (`4-bit` → 0.5 bytes/param, `8-bit` → 1.0, `MXFP4` → 0.5, `None` → 2.0).
+/// (`4-bit` → 0.5 bytes/param, `8-bit` → 1.0, `MXFP4` → 0.5,
+/// `NVFP4` → 0.5625, `None` → 2.0).
 enum MemoryEstimator {
 
     // MARK: - Output
@@ -230,6 +231,7 @@ enum MemoryEstimator {
         case .sixBit: return 0.75
         case .fourBit: return 0.5
         case .mxfp4: return 0.5
+        case .nvfp4: return 0.5625  // 4-bit E2M1 plus one FP8 scale per 16 values
         }
     }
 
@@ -302,7 +304,10 @@ enum MemoryEstimator {
         // size (shrinks activations and KV cache quadratically with seq).
         var hints: [String] = []
 
-        if verdict == .tooLarge, config.quantization != .fourBit, config.quantization != .mxfp4 {
+        if verdict == .tooLarge,
+           config.quantization != .fourBit,
+           config.quantization != .mxfp4,
+           config.quantization != .nvfp4 {
             hints.append("Try 4-bit quantization")
         } else if verdict == .risky, config.quantization == .none {
             hints.append("Try 4-bit quantization")
@@ -365,6 +370,7 @@ enum MemoryEstimator {
             case .sixBit: "6-bit"
             case .fourBit: "4-bit"
             case .mxfp4: "MXFP4"
+            case .nvfp4: "NVFP4"
             }
         }()
         let trainTypeLabel: String = {

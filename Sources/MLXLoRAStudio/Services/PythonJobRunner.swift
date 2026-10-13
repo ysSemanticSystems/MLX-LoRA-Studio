@@ -353,10 +353,19 @@ final class PythonJobRunner {
           echo "Updating pip, setuptools, and wheel..."
           pip_install -U pip setuptools wheel
         fi
-        echo "\(installVerb) mlx, mlx-lm, and matplotlib..."
-        pip_install -U \(reinstallArgs)mlx mlx-lm matplotlib
+        # mlx 0.32.3 is the newest release: NVFP4 global-scale matmul and
+        # the safetensors save fix. mlx-lm on PyPI (0.32.0) does not pass
+        # that scale for MoE layers, so install the 2026-10-10 main
+        # revision after the trainer. Same reported version, so it has to
+        # be force-installed or pip keeps the PyPI build.
+        MLX_SPEC='mlx>=0.32.3'
+        MLX_LM_SPEC='mlx-lm @ git+https://github.com/ml-explore/mlx-lm.git@ba8a08fd2ed72bbc53de84f89933f91fe4743e4a'
+        echo "\(installVerb) MLX 0.32.3 or newer, and matplotlib..."
+        pip_install -U \(reinstallArgs)"$MLX_SPEC" matplotlib
         echo "\(installVerb) local mlx-lm-lora package..."
         pip_install -U \(reinstallArgs)-e "$PACKAGE_DIR"
+        echo "Installing mlx-lm with NVFP4 global-scale support..."
+        pip_install -U --force-reinstall --no-deps "$MLX_LM_SPEC"
         echo "Package \(forceReinstall ? "reinstall" : "update") complete."
         """
 

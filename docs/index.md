@@ -18,7 +18,7 @@ It is a graphical front-end to the [`mlx-lm-lora`](https://github.com/Goekdeniz-
 ### 🧠 Training
 - **12 training algorithms:** SFT, DPO, DSLA, FTPO, CPO, ORPO, GRPO, KLPO, Online DPO, XPO, RLHF Reinforce, and PPO.
 - **mlx-lm-lora 5.8.6 backend** with SFT losses: NLL, memory-bounded Chunked NLL, and Dynamic Fine-Tuning.
-- **5 adapter / training modes:** LoRA, DoRA, QLoRA (4/6/8-bit), full fine-tuning, and **Quantization-Aware Training (QAT)**.
+- **5 adapter / training modes:** LoRA, DoRA, QLoRA (4/6/8-bit, MXFP4, NVFP4), full fine-tuning, and **Quantization-Aware Training (QAT)**.
 - **10 optimizers selectable** (Adam, AdamW, Muon documented; plus SGD, RMSprop, Adagrad, AdaDelta, Adamax, Lion, Adafactor).
 - **Adapter resume** — continue from an existing checkpoint.
 - **Judge / reward model selection** for RL-style algorithms.
@@ -71,7 +71,7 @@ Orthogonal to the loss: which tensors are trainable, how gradients become update
 - [Full fine-tuning](Full-Fine-Tuning) — every weight trainable.
 
 **Quantization**
-- [QLoRA](QLoRA) — load-time 4 / 6 / 8 / MXFP4-bit quantization of the base model.
+- [QLoRA](QLoRA) — load-time 4 / 6 / 8 / MXFP4 / NVFP4 quantization of the base model.
 - [QAT](QAT) — Quantization-Aware Training; train the adapter as if it will be deployed quantised.
 
 **Optimizers**

@@ -206,6 +206,12 @@ private struct ModeStrip: View {
 private struct ModelDataSection: View {
     @Binding var config: TrainingConfig
     @Environment(AppStore.self) private var store
+    @State private var modelVerdict: ChoiceVerdict?
+    @State private var vlmVerdict: ChoiceVerdict?
+    @State private var datasetVerdict: ChoiceVerdict?
+    @State private var modelChecking = false
+    @State private var vlmChecking = false
+    @State private var datasetChecking = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -216,6 +222,7 @@ private struct ModelDataSection: View {
                 placeholder: config.modelFamily == .visionLanguage ? "Trainable text model or HF repo" : "Model or Hugging Face repo",
                 footer: cacheFooter
             )
+            ChoiceVerdictCard(verdict: modelVerdict, checking: modelChecking)
             if config.modelFamily == .visionLanguage {
                 HFAssetPicker(
                     text: $config.vlmModel,
@@ -223,6 +230,7 @@ private struct ModelDataSection: View {
                     placeholder: "Original VLM repo or local folder",
                     footer: "The vision tower, processor, and VLM config are preserved from this model."
                 )
+                ChoiceVerdictCard(verdict: vlmVerdict, checking: vlmChecking)
                 Text("Use a text model that matches the VLM's language model. After training, Studio writes a full MLX-VLM export.")
                     .foregroundStyle(.secondary)
                     .font(.callout)
@@ -234,6 +242,7 @@ private struct ModelDataSection: View {
                 placeholder: "Dataset path or local data folder",
                 footer: nil
             )
+            ChoiceVerdictCard(verdict: datasetVerdict, checking: datasetChecking)
             TextField("LM Studio export name", text: $config.lmStudioName)
             // Fine-tune (LoRA / DoRA / full) and Quantization moved
             // into the Algorithm card directly under the algorithm
@@ -242,6 +251,83 @@ private struct ModelDataSection: View {
         .formBlock()
         .animation(.easeInOut(duration: 0.2), value: config.trainMode)
         .animation(.easeInOut(duration: 0.2), value: config.modelFamily)
+        .task(id: config.model) {
+            await inspectModel(config.model, role: .trainableText)
+        }
+        .task(id: config.vlmModel) {
+            guard config.modelFamily == .visionLanguage else {
+                vlmVerdict = nil
+                return
+            }
+            await inspectModel(config.vlmModel, role: .originalVLM)
+        }
+        .task(id: config.data) {
+            await inspectDataset(config.data)
+        }
+        .onChange(of: config.modelFamily) { _, family in
+            guard family == .visionLanguage else {
+                vlmVerdict = nil
+                return
+            }
+            Task { await inspectModel(config.vlmModel, role: .originalVLM) }
+        }
+    }
+
+    private func inspectModel(_ path: String, role: ModelChoiceRole) async {
+        let key = path.trimmingCharacters(in: .whitespacesAndNewlines)
+        setChecking(true, role: role)
+        storeVerdict(nil, role: role)
+        let assessment = await Task.detached {
+            ChoiceVerifier.assessModel(path, role: role)
+        }.value
+        guard !Task.isCancelled else { return }
+        var verdict = assessment.verdict
+        let alreadyApplied = role == .trainableText ? store.appliedModelChoice == key : store.appliedVLMChoice == key
+        if role == .trainableText, !alreadyApplied, let quantization = assessment.quantization {
+            config.quantization = quantization
+            verdict.appliedSummary = assessment.quantizationSummary
+            store.appliedModelChoice = key
+        } else if role == .originalVLM, !alreadyApplied {
+            store.appliedVLMChoice = key
+        }
+        storeVerdict(verdict, role: role)
+        setChecking(false, role: role)
+    }
+
+    private func inspectDataset(_ path: String) async {
+        let key = path.trimmingCharacters(in: .whitespacesAndNewlines)
+        let mode = config.trainMode
+        datasetChecking = true
+        datasetVerdict = nil
+        let assessment = await Task.detached {
+            ChoiceVerifier.assessDataset(path, currentMode: mode)
+        }.value
+        guard !Task.isCancelled else { return }
+        var verdict = assessment.verdict
+        if store.appliedDatasetChoice != key, let preset = assessment.preset {
+            var updated = config
+            updated.applyDatasetPreset(preset)
+            config = updated
+            verdict.appliedSummary = preset.summary
+            verdict.chips = preset.chips
+            store.appliedDatasetChoice = key
+        }
+        datasetVerdict = verdict
+        datasetChecking = false
+    }
+
+    private func setChecking(_ checking: Bool, role: ModelChoiceRole) {
+        switch role {
+        case .trainableText: modelChecking = checking
+        case .originalVLM: vlmChecking = checking
+        }
+    }
+
+    private func storeVerdict(_ verdict: ChoiceVerdict?, role: ModelChoiceRole) {
+        switch role {
+        case .trainableText: modelVerdict = verdict
+        case .originalVLM: vlmVerdict = verdict
+        }
     }
 
     /// Footer line that summarises what the dropdown is showing, so the
@@ -252,6 +338,91 @@ private struct ModelDataSection: View {
         let d = store.cachedDatasets.count
         let s = store.syntheticRunOutputs.count
         return "Local HF cache: \(n) model\(n == 1 ? "" : "s") · \(d) dataset\(d == 1 ? "" : "s") · Synthetic runs: \(s)"
+    }
+}
+
+private struct ChoiceVerdictCard: View {
+    let verdict: ChoiceVerdict?
+    let checking: Bool
+
+    var body: some View {
+        if checking && verdict == nil {
+            HStack(spacing: 8) {
+                ProgressView().controlSize(.small)
+                Text("Checking this choice…")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+            }
+        } else if let verdict {
+            HStack(alignment: .top, spacing: 10) {
+                Image(systemName: symbol)
+                    .font(.title3)
+                    .foregroundStyle(tint)
+                    .frame(width: 22)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(verdict.title)
+                        .font(.callout.weight(.semibold))
+                    Text(verdict.detail)
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    if !verdict.chips.isEmpty {
+                        ChoiceChipRow(chips: verdict.chips, tint: tint)
+                    }
+                    if let applied = verdict.appliedSummary {
+                        Label(applied, systemImage: "checkmark.circle")
+                            .font(.caption)
+                            .foregroundStyle(tint)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+            }
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(tint.opacity(0.12), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .strokeBorder(tint.opacity(0.45), lineWidth: 1)
+            }
+        }
+    }
+
+    private var symbol: String {
+        switch verdict?.status {
+        case .acceptable: "checkmark.circle.fill"
+        case .caution: "exclamationmark.triangle.fill"
+        case .rejected: "xmark.octagon.fill"
+        case nil: "questionmark.circle"
+        }
+    }
+
+    private var tint: Color {
+        switch verdict?.status {
+        case .acceptable: .green
+        case .caution: .orange
+        case .rejected: .red
+        case nil: .secondary
+        }
+    }
+}
+
+private struct ChoiceChipRow: View {
+    let chips: [String]
+    let tint: Color
+
+    var body: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 6) {
+                ForEach(chips, id: \.self) { chip in
+                    Text(chip)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(tint)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(tint.opacity(0.14), in: Capsule())
+                }
+            }
+        }
     }
 }
 

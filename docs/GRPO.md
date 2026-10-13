@@ -81,7 +81,7 @@ On the **Train** tab, GRPO exposes two algorithm-specific blocks on top of the s
 - **Reward weights**, e.g. `[2.0, 0.5, 0.5, 0.5, 0.5]` → `reward_weights`.
 - **Reward functions Python file** + **Import** button (file picker for `.py` / `.txt`) → `reward_functions_file`.
 
-Shared form (every algorithm): **Model & Data** (base model, dataset, LM Studio export name); **Fine-tune** (`train_type` LoRA/DoRA/Full, with LoRA Settings — Layers, Rank, Scale, Dropout — for LoRA/DoRA, and Quantization None/4/6/8/MXFP4); **Training Settings** (Iterations, Epochs, Batch, Max Seq, Seed, Learning Rate, Optimizer, LR Schedule, Report/Eval/Save, Val Batches, Gradient accumulation, Sequence step size, Test Batches; grad-checkpoint / mask-prompt / fuse toggles); **Dataset Columns** (Prompt, Answer, Type — the columns the reward functions read); **Output** (run folder name); **QAT** (not applicable to GRPO).
+Shared form (every algorithm): **Model & Data** (base model, dataset, LM Studio export name); **Fine-tune** (`train_type` LoRA/DoRA/Full, with LoRA Settings — Layers, Rank, Scale, Dropout — for LoRA/DoRA, and Quantization None/4/6/8/MXFP4/NVFP4); **Training Settings** (Iterations, Epochs, Batch, Max Seq, Seed, Learning Rate, Optimizer, LR Schedule, Report/Eval/Save, Val Batches, Gradient accumulation, Sequence step size, Test Batches; grad-checkpoint / mask-prompt / fuse toggles); **Dataset Columns** (Prompt, Answer, Type — the columns the reward functions read); **Output** (run folder name); **QAT** (not applicable to GRPO).
 
 ## Custom reward functions
 

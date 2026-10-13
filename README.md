@@ -86,7 +86,7 @@ If you need detialed and longer explanations for the algorythms used, then visit
 - **12 training algorithms:** SFT, DPO, DSLA, FTPO, CPO, ORPO, GRPO, KLPO, Online DPO, XPO,
   RLHF Reinforce, and PPO.
 - **Dynamic SFT objectives:** NLL, memory-bounded Chunked NLL, and Dynamic Fine-Tuning.
-- **Multiple training modes:** LoRA, DoRA, QLoRA at 4/6/8-bit, full fine-tuning, and
+- **Multiple training modes:** LoRA, DoRA, QLoRA at 4/6/8-bit, MXFP4, and NVFP4, full fine-tuning, and
   Quantization-Aware Training (QAT).
 - **Live training observability** with loss, learning rate, gradient norm, throughput,
   progress, logs, and recent-step charts.
@@ -159,7 +159,7 @@ exists to make that loop feel like using a normal Mac app:**
 - **12 training algorithms** out of the box: SFT, DPO, DSLA, FTPO, CPO, ORPO, GRPO, KLPO,
   Online DPO, XPO, RLHF Reinforce, PPO. Pick by use case, not by which one is wired up.
 - **Selectable SFT losses:** NLL, Chunked NLL for lower peak memory, and DFT for emphasizing difficult tokens.
-- **LoRA, DoRA, QLoRA (4/6/8-bit), full fine-tuning, and QAT** (Quantization-Aware Training
+- **LoRA, DoRA, QLoRA (4/6/8-bit, MXFP4, NVFP4), full fine-tuning, and QAT** (Quantization-Aware Training
   for SFT/DPO/ORPO/DSLA) — the same training surface as the underlying `mlx-lm-lora` CLI.
 - **Adapter resume** — point a new run at an existing adapter checkpoint and Studio picks
   up where the last run left off.
@@ -402,7 +402,7 @@ Mirrored from the underlying `mlx-lm-lora` trainer:
 |-------------------------------|----------------------------------------------------------------|
 | **LoRA**                      | Low-rank adapters, configurable rank / alpha / target modules  |
 | **DoRA**                      | Weight-decomposed LoRA                                        |
-| **QLoRA (4/6/8-bit)**          | Quantized base model + LoRA adapters                           |
+| **QLoRA (4/6/8-bit, MXFP4, NVFP4)** | Quantized base model + LoRA adapters                    |
 | **Full fine-tuning**          | Train all parameters                                           |
 | **QAT** (Quantization-Aware)  | SFT / DPO / ORPO; project quantization during training         |
 

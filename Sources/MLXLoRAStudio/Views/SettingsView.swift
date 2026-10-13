@@ -132,7 +132,7 @@ struct SettingsView: View {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Python backends")
                                 .font(.headline)
-                            Text("Updates or reinstalls MLX runtime packages, then installs this release's pinned local mlx-lm-lora checkout with its requirements, including OpenAI-compatible API support.")
+                            Text("Installs MLX 0.32.3 or newer and the October 2026 mlx-lm revision that applies NVFP4 global scales, then this release's pinned mlx-lm-lora checkout.")
                                 .font(.callout)
                                 .foregroundStyle(.secondary)
                         }

@@ -1,0 +1,14 @@
+---
+description: SwiftUI app structure and the run-spec boundary
+globs: Sources/**/*.swift
+alwaysApply: false
+---
+
+# Swift
+
+- `AppStore` owns process state. Views edit `TrainingConfig` and call the store. They do not spawn Python.
+- New behavior that changes a run goes through `TrainingConfig.runSpecData()` and the matching decoder. Keep the JSON keys stable; `Backend/training_runner.py` reads them.
+- Mode rules live on `TrainMode` (`needsReference`, `needsJudge`, `supportsQAT`, `supportsEfficientLongContext`). Do not re-encode those booleans inside a view.
+- Comments explain a trainer constraint (DSLA drops long context, ORPO datasets have no prompt, Keychain holds the secret). Do not narrate the next line.
+- Tokens and API keys are Keychain items. UserDefaults stores paths, percents, and provider names only.
+- Adding a `.swift` file also means adding it to the `swiftc` invocation in `script/build_and_run.sh`.

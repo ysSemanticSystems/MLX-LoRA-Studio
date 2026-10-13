@@ -312,6 +312,7 @@ enum Quantization: String, CaseIterable, Identifiable {
     case sixBit
     case eightBit
     case mxfp4
+    case nvfp4
 
     var id: String { rawValue }
 
@@ -322,6 +323,7 @@ enum Quantization: String, CaseIterable, Identifiable {
         case .sixBit: "6-bit"
         case .eightBit: "8-bit"
         case .mxfp4: "MXFP4"
+        case .nvfp4: "NVFP4"
         }
     }
 }
@@ -781,6 +783,7 @@ struct TrainingConfig: Equatable {
             "load_in_6bits": quantization == .sixBit,
             "load_in_8bits": quantization == .eightBit,
             "load_in_mxfp4": quantization == .mxfp4,
+            "load_in_nvfp4": quantization == .nvfp4,
             "qat_enable": qatEnable,
             "qat_bits": qatBits,
             "qat_group_size": qatGroupSize,
@@ -1471,11 +1474,12 @@ extension TrainingConfig {
         if let v = spec["ftpo_rejected_feature"] as? String { config.ftpoRejectedFeature = v }
         if let v = spec["ftpo_chosen_feature"] as? String { config.ftpoChosenFeature = v }
 
-        // Quantization is encoded as one of four booleans in the spec.
+        // Quantization is encoded as one boolean per load-time mode.
         if let v = spec["load_in_4bits"] as? Bool, v { config.quantization = .fourBit }
         else if let v = spec["load_in_6bits"] as? Bool, v { config.quantization = .sixBit }
         else if let v = spec["load_in_8bits"] as? Bool, v { config.quantization = .eightBit }
         else if let v = spec["load_in_mxfp4"] as? Bool, v { config.quantization = .mxfp4 }
+        else if let v = spec["load_in_nvfp4"] as? Bool, v { config.quantization = .nvfp4 }
 
         // LoRA parameters (rank/scale/dropout) live in a sub-dict; the
         // writer also emits the flat keys, but those duplicate the

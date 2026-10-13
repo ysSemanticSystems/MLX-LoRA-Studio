@@ -1,0 +1,20 @@
+---
+description: Memory budget for this Mac and how a training run shares it
+alwaysApply: true
+---
+
+# This machine
+
+Mac Studio, Apple M5 Max, 36 GB unified memory. Leave about 7 GB for macOS, LM Studio, and other apps. ResourceGuard defaults to 78% of physical memory (`MLX_LORA_STUDIO_MEMORY_LIMIT_FRACTION`, about 28 GB here) and aborts the run at that peak.
+
+Count every resident model. A reference model copies the base weights. Online DPO, XPO, RLHF Reinforce, and PPO also load a judge. LM Studio may already be holding a model.
+
+| Plan | On this Mac |
+| --- | --- |
+| 7B–8B QLoRA 4-bit, no reference | Fits, including beside a small LM Studio model |
+| 7B–8B LoRA | Fits alone. Tight if a reference or judge is also loaded |
+| 7B–8B full fine-tune | Does not fit |
+| 13B QLoRA | Fits alone. Not with a second full-size copy |
+| 27B or 70B | Do not start a Studio run while those weights are loaded |
+
+Warn before a launch that would evict LM Studio or cross the guard. Lower batch size, sequence length, or rank, or quantize, before retrying. The sidebar estimate is `MemoryEstimator`; use it instead of a guess.

@@ -399,6 +399,8 @@ def _detect_quantization(spec: dict[str, Any]) -> str:
         return "8-bit"
     if spec.get("load_in_mxfp4"):
         return "MXFP4"
+    if spec.get("load_in_nvfp4"):
+        return "NVFP4"
     return "none"
 
 

@@ -1,0 +1,17 @@
+---
+description: Python training runner contract with the Swift run spec
+globs: Backend/**/*.py
+alwaysApply: false
+---
+
+# Training runner
+
+`training_runner.py` is the app-owned pipeline. It loads a JSON spec (`--spec`) and dispatches `PIPELINES`. It does not grow a second config format.
+
+- Mode sets at the top (`REFERENCE_MODES`, `JUDGE_MODES`, `REWARD_FUNCTION_MODES`, `MICRO_BATCH_MODES`) must match `TrainMode` in `TrainingModels.swift`. DSLA loads a reference only when `dsla_loss` is `dpo`.
+- Online modes require a judge. Write `micro_batch_size` only when it is greater than zero.
+- QAT is SFT, DPO, DSLA, and ORPO. KLPO forces it off. DSLA forces `efficient_long_context` off.
+- `ResourceGuard` stays on unless `MLX_LORA_STUDIO_RESOURCE_GUARD` is disabled. Do not catch its `RuntimeError` and continue.
+- Log through `studio_log`. Vendor banners stay inside `quiet_vendor_output()`.
+- Current load-time flags are `load_in_4bits`, `load_in_6bits`, `load_in_8bits`, `load_in_mxfp4`, and `load_in_nvfp4`. NVFP4 currently maps to `bits=4`, `group_size=16`, `mode=nvfp4`. A missing flag on an older spec stays false. These flags quantize a full-precision model; an already quantized checkpoint loads with every flag false. If the set or the mapping changes, update Swift, this runner, and `decisions.md` together.
+- Do not import or edit `vendor/mlx-lm-lora`. A missing trainer symbol is a pin mismatch, not a local patch.

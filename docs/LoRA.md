@@ -50,7 +50,7 @@ On the **Train** tab → **Fine-tune** section:
 
 - **Fine-tune** picker (segmented): LORA / DORA / FULL → `train_type`.
 - With LORA selected, **LoRA Settings**: **Layers** → `num_layers`, **Rank** → `rank`, **Scale** → `scale`, **Dropout** → `dropout`.
-- **Quantization** picker: None / 4-bit / 6-bit / 8-bit / MXFP4 (see [QLoRA](QLoRA)).
+- **Quantization** picker: None / 4-bit / 6-bit / 8-bit / MXFP4 / NVFP4 (see [QLoRA](QLoRA)).
 - Resume a previous adapter via the **Runs** tab → **Open** (loads a run back into the form, including `resume_adapter_file`), or set the run folder in **Output**.
 - `fuse` (merge adapters back into the base after training) is a toggle in **Training Settings**.
 

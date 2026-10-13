@@ -99,7 +99,7 @@ These settings are the SFT substrate — every other algorithm inherits them. Ea
 | `lm_studio_name` | `—` | If set, write the merged model into the LM Studio models directory under this name. |
 | `resume_adapter_file` | `—` | Path to a saved `adapters.safetensors` to warm-start from. Useful for SFT-then-DPO pipelines. |
 | `seed` | `0` | Seed for `numpy` and `mlx.core`. MLX GPU kernels are not bit-exact across driver versions. |
-| `load_in_4bits` / `6` / `8` / `mxfp4` | `4-bit` | Load-time quantisation. `4-bit`/`MXFP4` most aggressive; 8-bit safe default for preference training. See [QLoRA](QLoRA). |
+| `load_in_4bits` / `6` / `8` / `mxfp4` / `nvfp4` | `4-bit` | Load-time quantisation of a full-precision model. `4-bit`/`MXFP4`/`NVFP4` are the smallest; 8-bit is the safe default for preference training. Leave these off for an already quantized checkpoint. See [QLoRA](QLoRA). |
 | `qat_enable` | `false` | Install a symmetric fake-quantise hook on every `nn.Linear` after the first optimiser step. See [QAT](QAT). |
 | `qat_bits` / `group_size` / `start_step` / `interval` | `8 / 64 / 1 / 1` | Bit-width, group size (0 = per-tensor), first step to enable, re-project interval. |
 | `test` / `test_batches` | `false / 100` | If `test` is true, evaluate a held-out test split after training and write the result into the run record. |
@@ -117,7 +117,7 @@ These settings are the SFT substrate — every other algorithm inherits them. Ea
 On the **Train** tab, SFT uses only the shared form — there is no algorithm-specific block:
 
 - **Model & Data** — base model + dataset (HF asset pickers), LM Studio export name.
-- **Fine-tune** — `train_type` (LORA / DORA / FULL); when LoRA/DoRA, **LoRA Settings** (Layers → `num_layers`, Rank, Scale, Dropout); **Quantization** (None / 4-bit / 6-bit / 8-bit / MXFP4).
+- **Fine-tune** — `train_type` (LORA / DORA / FULL); when LoRA/DoRA, **LoRA Settings** (Layers → `num_layers`, Rank, Scale, Dropout); **Quantization** (None / 4-bit / 6-bit / 8-bit / MXFP4 / NVFP4).
 - **Training Settings** — Iterations, Epochs, Batch, Max Seq, Seed, Learning Rate, Optimizer, LR Schedule (Warmup, Decay Fraction, Final LR), Report / Eval / Save, Val Batches, Gradient accumulation steps, Sequence step size (`efficient_long_context`), Test Batches; toggles for grad checkpoint, mask prompt, fuse.
 - **Dataset Columns** — Prompt, Completion, Chat, Text, System (the column-name overrides for SFT's three schemas).
 - **Output** — run folder name.

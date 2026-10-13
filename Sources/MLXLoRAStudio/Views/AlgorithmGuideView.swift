@@ -48,7 +48,7 @@ struct AlgorithmGuideView: View {
                 .font(.headline)
             Text("mlx-lm-lora 5.8.6 ships twelve training algorithms, grouped into three families: **supervised** (SFT), **preference** (DPO, DSLA, FTPO, CPO, ORPO), and **reinforcement / online** (GRPO, KLPO, Online DPO, XPO, RLHF-REINFORCE, PPO). Tapping a card in **Training loops** below opens its full wiki article.")
                 .fixedSize(horizontal: false, vertical: true)
-            Text("Under **Foundations** you will find the four pieces that are orthogonal to the choice of loss: the **adaptation method** that decides which tensors are trainable (LoRA / DoRA / full), the **optimizer** that turns gradients into updates (Adam, AdamW, Muon), the **load-time quantisation** of the base model (4 / 6 / 8 / MXFP4 bit), and **Quantization-Aware Training** that simulates a quantised forward pass so the trained adapter survives deployment quantisation.")
+            Text("Under **Foundations** you will find the four pieces that are orthogonal to the choice of loss: the **adaptation method** that decides which tensors are trainable (LoRA / DoRA / full), the **optimizer** that turns gradients into updates (Adam, AdamW, Muon), the **load-time quantisation** of the base model (4 / 6 / 8 / MXFP4 / NVFP4), and **Quantization-Aware Training** that simulates a quantised forward pass so the trained adapter survives deployment quantisation.")
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(16)
@@ -96,7 +96,7 @@ struct AlgorithmGuideView: View {
 
                 foundationCard(
                     title: "Quantization & QAT",
-                    subtitle: "4 / 6 / 8 / MXFP4 + QAT hook",
+                    subtitle: "4 / 6 / 8 / MXFP4 / NVFP4 + QAT hook",
                     symbol: "cpu",
                     isSelected: selection == .quantization
                 ) { selection = .quantization }
@@ -630,8 +630,8 @@ private struct AlgorithmArticle: View {
                   explanation: "Path to a previously-saved `adapters.safetensors` to warm-start from. Useful for continuing a long run or for SFT-then-DPO pipelines."),
             .init(setting: "seed", defaultValue: "0",
                   explanation: "Seed for `numpy` and `mlx.core`. Set deterministically to reproduce a run; bear in mind that MLX GPU kernels are not bit-exact across driver versions."),
-            .init(setting: "load_in_4bits / 6 / 8 / mxfp4", defaultValue: "4-bit",
-                  explanation: "Quantisation used when loading the base model. `4-bit` and `MXFP4` are the most aggressive; 8-bit is the safe default for preference training."),
+            .init(setting: "load_in_4bits / 6 / 8 / mxfp4 / nvfp4", defaultValue: "4-bit",
+                  explanation: "Quantisation used when loading a full-precision base model. `4-bit`, `MXFP4`, and `NVFP4` are the smallest; 8-bit is the safe default for preference training. Leave this off for a checkpoint that is already quantized."),
             .init(setting: "qat_enable", defaultValue: "false",
                   explanation: "Installs a symmetric fake-quantise hook on every `nn.Linear` after the first optimiser step (configurable). Gradients flow through via the straight-through estimator, so the model trains as if it will be quantised at inference."),
             .init(setting: "qat_bits / group_size / start_step / interval", defaultValue: "8 / 64 / 1 / 1",
@@ -1562,8 +1562,8 @@ private struct OptimizerArticle: View {
 
 // MARK: Quantization & QAT Article
 
-/// Covers the four load-time quantisation modes (`load_in_4bits`,
-/// `load_in_6bits`, `load_in_8bits`, `load_in_mxfp4`) and the
+/// Covers the load-time quantisation modes (`load_in_4bits`,
+/// `load_in_6bits`, `load_in_8bits`, `load_in_mxfp4`, `load_in_nvfp4`) and the
 /// in-training Quantization-Aware Training (QAT) hook installed by
 /// `_install_qat_hooks` in the SFT trainer. Backed by
 /// `mlx.nn.quantize` (load time) and the straight-through-estimator
@@ -1597,7 +1597,7 @@ private struct QuantizationArticle: View {
                 Text("Objective (math)")
                     .font(.title3.bold())
 
-                Text("**Affine quantisation** (load-time, all four modes)")
+                Text("**Affine quantisation** (load-time 4 / 6 / 8-bit)")
                     .font(.body.bold())
                 MathBlock(source: """
                     # Per group of *group_size* consecutive columns of *W*:
@@ -1605,7 +1605,7 @@ private struct QuantizationArticle: View {
                     *Q*<sub>g</sub>     =  clip( round( *W*<sub>g</sub> ⁄ *s*<sub>g</sub> ),  *q*<sub>min</sub>,  *q*<sub>max</sub> )    (N-bit signed int)
                     *Ŵ*<sub>g</sub>     =  *Q*<sub>g</sub>  ·  *s*<sub>g</sub>                          (dequantised)
                 """)
-                Text(.init(MathTypesetter.richify("with *q*<sub>max</sub> = 2<sup>N − 1</sup> − 1 and *q*<sub>min</sub> = −*q*<sub>max</sub> − 1. For N = 4, *q*<sub>max</sub> = 7 and *q*<sub>min</sub> = −8. For MXFP4 the format is identical but the group size is fixed at 32 and the scale is stored as an 8-bit E8M0 value (a *microscaling* format).")))
+                Text(.init(MathTypesetter.richify("with *q*<sub>max</sub> = 2<sup>N − 1</sup> − 1 and *q*<sub>min</sub> = −*q*<sub>max</sub> − 1. For N = 4, *q*<sub>max</sub> = 7 and *q*<sub>min</sub> = −8. MXFP4 uses the same 4-bit idea with group size 32 and an 8-bit E8M0 scale. NVFP4 is different: 4-bit E2M1 values, group size 16, an FP8 block scale, and a per-tensor FP32 global scale that MLX 0.32.3 applies inside the matmul.")))
                     .fixedSize(horizontal: false, vertical: true)
 
                 Text("**Symmetric fake quantise** (QAT, applied inside the forward)")
@@ -1641,6 +1641,8 @@ private struct QuantizationArticle: View {
                           explanation: "8-bit quantisation (group size 128). The safe default for preference training and for any run where the model has to read long contexts with precise numerics."),
                     .init(setting: "load_in_mxfp4", defaultValue: "false",
                           explanation: "MXFP4 (microscaling 4-bit) with group size 32. Used by recent NVIDIA/Microscaling hardware; on Apple Silicon it is functionally similar to 4-bit but with smaller groups and an 8-bit E8M0 scale."),
+                    .init(setting: "load_in_nvfp4", defaultValue: "false",
+                          explanation: "NVFP4 (E2M1, group size 16) with an FP8 block scale and a per-tensor FP32 global scale. Choose this when the deployment checkpoint is NVFP4. Leave every load_in_* flag off if the base model is already quantized; mlx-lm then loads the published scales, including MoE global scales."),
                     .init(setting: "qat_enable", defaultValue: "false",
                           explanation: "Install the STE fake-quantise hook on every `nn.Linear` after the first optimiser step. Only effective for the SFT/DPO/ORPO trainers (the others do not call `_install_qat_hooks`)."),
                     .init(setting: "qat_bits", defaultValue: "8",
@@ -1659,6 +1661,7 @@ private struct QuantizationArticle: View {
                 • **4-bit load + LoRA + QAT (8-bit)**: the "QLoRA" recipe. Smallest memory footprint, suitable for 7B–13B models on a 16 GB laptop. The QAT-on-8-bit hook makes the adapter robust to being merged back into a 4-bit base.
                 • **8-bit load + LoRA + QAT (8-bit)**: slightly higher memory than the 4-bit recipe, but the inference quantisation is gentler and the loss curve is more stable.
                 • **MXFP4**: only choose this if your deployment target uses MXFP4 (or you specifically want microscaling-style 4-bit during training). On Apple Silicon the throughput difference vs. regular 4-bit is small.
+                • **NVFP4**: choose this to quantize a full-precision model into NVIDIA FP4 at load time. A model that is already NVFP4 should stay on **None**, so the published block scale and per-tensor global scale are loaded instead of being quantized again.
                 • **No load quantisation + QAT (4-bit)**: useful when you want the *base* model to stay in fp16 but the *adapter* to be 4-bit-deployable. QAT is the only way to get a 4-bit adapter that does not lose accuracy on outlier channels.
                 """)
 

@@ -54,6 +54,7 @@ swiftc \
   "$ROOT_DIR/Sources/MLXLoRAStudio/Models/TrainingModels.swift" \
   "$ROOT_DIR/Sources/MLXLoRAStudio/Models/PythonEnvironment.swift" \
   "$ROOT_DIR/Sources/MLXLoRAStudio/Support/MemoryEstimator.swift" \
+  "$ROOT_DIR/Sources/MLXLoRAStudio/Support/ChoiceVerifier.swift" \
   "$ROOT_DIR/Sources/MLXLoRAStudio/Support/LiveMemoryMonitor.swift" \
   "$ROOT_DIR/Sources/MLXLoRAStudio/Stores/AppStore.swift" \
   "$ROOT_DIR/Sources/MLXLoRAStudio/Services/PythonJobRunner.swift" \

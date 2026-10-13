@@ -1,0 +1,17 @@
+---
+description: Tokens, datasets, adapter weights, and run logs stay on this Mac
+alwaysApply: true
+---
+
+# Privacy
+
+Training data, adapter weights, merged models, run logs, and API credentials are private to this Mac.
+
+- Do not paste a dataset row, prompt, completion, token, or API key into chat, a commit, a PR, or a cloud prompt.
+- Do not read the Keychain. The Hugging Face token and synthetic provider keys are presence flags in the UI. They are injected into the Python child as `HF_TOKEN`, `HUGGING_FACE_HUB_TOKEN`, or `SYNTHETIC_*_API_KEY` and then dropped.
+- Do not `git add` `train.jsonl`, `valid.jsonl`, `test.jsonl`, `*.safetensors`, `*.gguf`, `.env`, `dist/`, or `vendor/`.
+- Summarize a run with paths, row counts, shapes, and metric names. Quote a row only when the user asked to inspect that row.
+- Runs live in `~/.mlxlorastudio/runs` (or a folder the user picked). The Hugging Face cache is not source.
+- `.cursorignore` and the privacy hooks enforce this. Set `MLX_STUDIO_ALLOW_CONTENT=1` only for a debugging session the user requested.
+
+See `.cursor/skills/privacy/SKILL.md`.

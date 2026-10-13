@@ -78,6 +78,12 @@ final class AppStore {
     var isScanningHFCache: Bool = false
     var trainingRunOutputs: [LocalRunOutput] = []
     var syntheticRunOutputs: [LocalRunOutput] = []
+    /// Paths whose recommended settings were already written into the form.
+    /// Kept on the store so leaving the Train tab and coming back does not
+    /// apply the same preset a second time over later edits.
+    var appliedModelChoice = ""
+    var appliedVLMChoice = ""
+    var appliedDatasetChoice = ""
 
     // Live-scraped model catalogs for each synthetic-data provider
     // backend (OpenAI / OpenRouter / Ollama / LM Studio / oMLX /

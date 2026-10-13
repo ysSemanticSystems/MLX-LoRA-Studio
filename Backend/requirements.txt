@@ -1,3 +1,11 @@
-mlx
+# MLX 0.32.3 is the latest release. It applies NVFP4's per-tensor
+# global scale inside quantized matmul and no longer truncates a
+# safetensors file that is still being read.
+mlx>=0.32.3
+# PyPI mlx-lm 0.32.0 does not pass that global scale for NVFP4 MoEs.
+# This revision is mlx-lm main as of 2026-10-10 (still version 0.32.0):
+# NVFP4 MoE global scales, Hadamard-rotated 2-bit Qwen3.5, and
+# pipeline loading of unconverted checkpoints.
+mlx-lm @ git+https://github.com/ml-explore/mlx-lm.git@ba8a08fd2ed72bbc53de84f89933f91fe4743e4a
 mlx-lm-lora==5.8.6
 matplotlib

@@ -1,6 +1,6 @@
 # QLoRA (Load-Time Quantization)
 
-**Quantization** · `load_in_4bits` / `load_in_6bits` / `load_in_8bits` / `load_in_mxfp4`
+**Quantization** · `load_in_4bits` / `load_in_6bits` / `load_in_8bits` / `load_in_mxfp4` / `load_in_nvfp4`
 
 > Load the base model in N-bit integers with a per-group scale, then train full-precision LoRA/DoRA adapters on top. The standard "QLoRA" recipe for fitting 7B–13B models on a 16 GB laptop.
 
@@ -18,7 +18,7 @@ The matrix `W ∈ R^{out×in}` is split along the last axis into groups of `grou
 
 ## Objective (math)
 
-Affine quantisation (all four modes):
+Affine quantisation (4 / 6 / 8-bit):
 
 ```text
 # Per group of group_size consecutive columns of W:
@@ -27,7 +27,7 @@ Q_g   =  clip( round( W_g / s_g ),  q_min,  q_max )    (N-bit signed int)
 Ŵ_g   =  Q_g  ·  s_g                           (dequantised)
 ```
 
-with `q_max = 2^(N−1) − 1` and `q_min = −q_max − 1`. For `N = 4`, `q_max = 7` and `q_min = −8`. For **MXFP4** the format is identical but the group size is fixed at 32 and the scale is stored as an 8-bit E8M0 value (a *microscaling* format).
+with `q_max = 2^(N−1) − 1` and `q_min = −q_max − 1`. For `N = 4`, `q_max = 7` and `q_min = −8`. For **MXFP4** the format is the same 4-bit idea but the group size is fixed at 32 and the scale is stored as an 8-bit E8M0 value (a *microscaling* format). **NVFP4** is a different format: 4-bit E2M1 values, group size 16, an FP8 block scale, and a per-tensor FP32 global scale. MLX 0.32.3 applies that global scale inside the quantized matmul.
 
 ## What the settings change
 
@@ -37,6 +37,7 @@ with `q_max = 2^(N−1) − 1` and `q_min = −q_max − 1`. For `N = 4`, `q_max
 | `load_in_6bits` | `false` | 6-bit quantisation (group size 128). Rarely the right choice — usually 4-bit or 8-bit wins. |
 | `load_in_8bits` | `false` | 8-bit quantisation (group size 128). Safe default for preference training and long contexts with precise numerics. |
 | `load_in_mxfp4` | `false` | MXFP4 (microscaling 4-bit), group size 32, 8-bit E8M0 scale. Functionally similar to 4-bit on Apple Silicon but with smaller groups. |
+| `load_in_nvfp4` | `false` | NVFP4 (E2M1, group size 16) plus an FP8 block scale and a per-tensor FP32 global scale. Use this to quantize a full-precision model. Leave it off when the checkpoint is already NVFP4. |
 
 ## Memory expectations
 
@@ -54,13 +55,14 @@ Approximate, single-GPU Apple Silicon, `batch_size 2`, 2048-token sequences (fro
 - **4-bit load + LoRA + QAT (8-bit):** the "QLoRA" recipe. Smallest memory footprint, suitable for 7B–13B models on a 16 GB laptop. The QAT-on-8-bit hook makes the adapter robust to being merged back into a 4-bit base.
 - **8-bit load + LoRA:** slightly higher memory than 4-bit, but the inference quantisation is gentler and the loss curve is more stable. The safe default for preference training.
 - **MXFP4:** only choose this if your deployment target uses MXFP4. On Apple Silicon the throughput difference vs. regular 4-bit is small.
+- **NVFP4:** quantize a full-precision model into NVIDIA FP4 at load time. If the base model is already NVFP4, choose **None** so mlx-lm loads the published block scale and per-tensor global scale. Re-quantizing an already quantized checkpoint is rejected.
 - **6-bit:** rarely the right call — pick 4-bit (smallest) or 8-bit (highest quality).
 
 ## In the app
 
 On the **Train** tab → **Fine-tune** section, the **Quantization** dropdown selects the load-time precision:
 
-- **None** / **4-bit** / **6-bit** / **8-bit** / **MXFP4** → `load_in_4bits` / `load_in_6bits` / `load_in_8bits` / `load_in_mxfp4` (group size 128, or 32 for MXFP4).
+- **None** / **4-bit** / **6-bit** / **8-bit** / **MXFP4** / **NVFP4** → `load_in_4bits` / `load_in_6bits` / `load_in_8bits` / `load_in_mxfp4` / `load_in_nvfp4` (group size 128, 32 for MXFP4, or 16 for NVFP4).
 
 Pair it with LoRA or DoRA in the same Fine-tune section. Quantisation is applied at load time and is irreversible for the loaded model object — restart the run after changing it. For the "QLoRA + QAT" recipe, also enable the [QAT](QAT) section.
 
@@ -73,6 +75,7 @@ Pair it with LoRA or DoRA in the same Fine-tune section. Quantisation is applied
 
 - Dettmers et al., 2023, *QLoRA: Efficient Finetuning of Quantized LLMs*; the load-time affine scheme mirrors `mlx.nn.quantize`.
 - Microscaling (MXFP4) format: NVIDIA / OCP Microscaling Formats specification.
+- NVFP4: NVIDIA FP4 (E2M1) with a per-tensor FP32 global scale, applied by MLX 0.32.3.
 
 ## See also
 

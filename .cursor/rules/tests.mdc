@@ -1,0 +1,14 @@
+---
+description: What a Swift or Python test must prove
+globs: Tests/**/*
+alwaysApply: false
+---
+
+# Tests
+
+Prove the contract between the form, the JSON spec, and the runner. Do not boot a model.
+
+- Swift (`swift test`): round-trip `runSpecData()` and assert forced flags. DSLA writes `efficient_long_context: false`. KLPO writes `qat_enable: false` and no `judge`. Online modes omit `micro_batch_size` until it is set. VLM specs keep `vlm_model`.
+- Python (`python3 -m unittest Tests/test_training_runner.py`): stub MLX. Every `TrainMode` reaches its pipeline. DSLA-DPO loads a reference. Judge modes require a judge. An invalid KLPO estimator is rejected. ResourceGuard cancels when peak exceeds the limit and can be disabled.
+- Fixtures are synthetic one-liners. Do not commit a real dataset, export, or adapter.
+- `./script/build_and_run.sh --verify` only checks that the app process starts. It is not a substitute for the suites above.

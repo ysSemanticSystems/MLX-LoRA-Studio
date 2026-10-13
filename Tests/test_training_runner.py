@@ -34,6 +34,10 @@ def training_args_factory(name):
 
 
 def install_training_runner_stubs():
+    numpy = types.ModuleType("numpy")
+    numpy.random = SimpleNamespace(seed=lambda _seed: None)
+    sys.modules["numpy"] = numpy
+
     mlx = types.ModuleType("mlx")
     mlx.core = types.ModuleType("mlx.core")
     mlx.core.random = SimpleNamespace(seed=lambda _seed: None)
@@ -108,6 +112,7 @@ def install_training_runner_stubs():
         "load_in_6bits": False,
         "load_in_8bits": False,
         "load_in_mxfp4": False,
+        "load_in_nvfp4": False,
         "test": False,
         "wandb": None,
         "lora_parameters": {"rank": 8, "scale": 20.0, "dropout": 0.0},
@@ -244,6 +249,29 @@ class TrainingRunnerTests(unittest.TestCase):
         self.assertEqual(wrapped[3]["system"], "Use this fallback")
         self.assertNotIn("system", rows[2])
 
+    def test_load_time_quantization_modes(self):
+        runner, _stubs = load_training_runner()
+
+        self.assertEqual(
+            runner._quantization_config(
+                SimpleNamespace(load_in_4bits=True)
+            ),
+            {"bits": 4, "group_size": 128},
+        )
+        self.assertEqual(
+            runner._quantization_config(
+                SimpleNamespace(load_in_nvfp4=True)
+            ),
+            {"bits": 4, "group_size": 16, "mode": "nvfp4"},
+        )
+        self.assertEqual(
+            runner._quantization_config(
+                SimpleNamespace(load_in_mxfp4=True)
+            ),
+            {"bits": 4, "group_size": 32, "mode": "mxfp4"},
+        )
+        self.assertIsNone(runner._quantization_config(SimpleNamespace()))
+
     def test_normalize_spec_defaults_to_text_family(self):
         runner, _stubs = load_training_runner()
 
@@ -252,6 +280,7 @@ class TrainingRunnerTests(unittest.TestCase):
         )
 
         self.assertEqual(args.model_family, "text")
+        self.assertFalse(args.load_in_nvfp4)
         self.assertTrue(args.vlm_dequantize)
         self.assertTrue(args.fuse_dequantize)
         self.assertTrue(args.fuse_remove_adapters)

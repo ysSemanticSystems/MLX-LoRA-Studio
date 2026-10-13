@@ -1,0 +1,26 @@
+---
+description: Current product state so a new chat does not redo settled work
+alwaysApply: true
+---
+
+# Handoff
+
+Do the task the user asked for. Do not redesign the stack. Settled choices are in `.cursor/skills/training-contract/decisions.md`.
+
+## Now
+
+Version file `2.0.3`. Bundled trainer pin `mlx-lm-lora` 5.8.6: DSLA, KLPO, recurrence chunk size, micro-batched judge scoring, Python 3.11+. All twelve `TrainMode` cases have a pipeline in `Backend/training_runner.py`.
+
+As of October 2026 the runtime pin is separate from the trainer pin: package update installs `mlx>=0.32.3` and mlx-lm git `ba8a08fd`, because PyPI mlx-lm 0.32.0 omits NVFP4 MoE global scales. Load-time modes are None / 4 / 6 / 8 / MXFP4 / NVFP4, and an already quantized checkpoint stays on None. This is the current choice, not a permanent one. When the user or a newer upstream release changes the pin or the mode list, update the installer, the spec, and this note together. Do not quietly revert to bare `pip install -U mlx mlx-lm` without that reason.
+
+The README heading "Release v2.0.0" still says the app targets mlx-lm-lora 3.1.2. That paragraph is stale. Do not revert code or docs to 3.1.2 to match it.
+
+The default run folder in code is `~/.mlxlorastudio/runs`. The README's Application Support path is stale.
+
+## Next
+
+Nothing queued.
+
+## Do not carry into the new chat
+
+Tokens, provider API keys, dataset rows, adapter weights, or run logs. Report paths, shapes, and metric names only.

@@ -1,0 +1,13 @@
+dist/
+vendor/
+.build/
+.swiftpm/
+Runs/
+**/*.safetensors
+**/*.gguf
+**/*.npz
+.env
+.env.*
+**/*.sqlite
+**/*.sqlite-wal
+**/*.sqlite-shm

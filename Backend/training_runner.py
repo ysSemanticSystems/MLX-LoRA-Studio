@@ -404,6 +404,8 @@ def _normalize_spec(spec: dict[str, Any]) -> SimpleNamespace:
     args.setdefault("top_p", 0.95)
     args.setdefault("top_k", 20)
     args.setdefault("min_p", 0.0)
+    # Older saved specs predate NVFP4. Leave them on whatever mode they set.
+    args.setdefault("load_in_nvfp4", False)
 
     for key in (
         "judge_system",
@@ -633,14 +635,22 @@ def _materialize_jsonl_splits(folder: Path) -> bool:
 
 
 def _quantization_config(args: SimpleNamespace) -> dict[str, Any] | None:
-    if args.load_in_4bits:
+    # These flags quantize a full-precision checkpoint at load time.
+    # A checkpoint that is already quantized, including NVFP4 with a
+    # per-tensor global scale, is loaded by mlx-lm as published. Leave
+    # every flag false for that path.
+    if getattr(args, "load_in_4bits", False):
         return {"bits": 4, "group_size": 128}
-    if args.load_in_6bits:
+    if getattr(args, "load_in_6bits", False):
         return {"bits": 6, "group_size": 128}
-    if args.load_in_8bits:
+    if getattr(args, "load_in_8bits", False):
         return {"bits": 8, "group_size": 128}
-    if args.load_in_mxfp4:
+    if getattr(args, "load_in_mxfp4", False):
         return {"bits": 4, "group_size": 32, "mode": "mxfp4"}
+    if getattr(args, "load_in_nvfp4", False):
+        # MLX 0.32.3: E2M1 weights, group size 16, FP8 block scale,
+        # and a per-tensor FP32 global scale.
+        return {"bits": 4, "group_size": 16, "mode": "nvfp4"}
     return None
 
 

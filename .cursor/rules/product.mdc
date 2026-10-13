@@ -1,0 +1,18 @@
+---
+description: Stack and decisions that must not be relitigated
+alwaysApply: true
+---
+
+# Product
+
+MLX LoRA Studio is a native macOS app (SwiftUI + AppKit, macOS 14+, Apple Silicon) around the `mlx-lm-lora` trainer. Not Electron, Gradio, or a cross-platform port.
+
+- The trainer is the source of truth. The pin is `MLX_LM_LORA_VERSION` in `script/build_and_run.sh` (5.8.6). It is fetched into gitignored `vendor/mlx-lm-lora/`. Do not edit that checkout. Algorithm changes land in mlx-lm-lora first; this app follows.
+- The MLX runtime pin is separate from the trainer pin and can move when the user or an upstream release says so. The current installer (`PythonJobRunner`, `Backend/requirements.txt`) uses `mlx>=0.32.3` and mlx-lm git `ba8a08fd2ed72bbc53de84f89933f91fe4743e4a`, force-reinstalled after the trainer because PyPI mlx-lm 0.32.0 has the same version number and omits NVFP4 MoE global scales. A newer pin replaces this one in the same change as the code. 1-bit affine is unreleased as of October 2026; add it when a released wheel has it, or sooner if the user asks.
+- The form is a view over a JSON run spec. `TrainingConfig.runSpecData()` and `Backend/training_runner.py` must accept the same fields.
+- A new Swift file must be added to the `swiftc` file list in `script/build_and_run.sh`. `Package.swift` alone does not ship it.
+- Synthetic Data is a legacy screen. Do not put it back on the active train path.
+- Secrets stay in the Keychain (`com.goekdeniz.mlx-lora-studio`). The store keeps a presence flag, not the token.
+- The app version lives in the `version` file. A git tag wins in CI.
+
+Settled mode rules: `.cursor/skills/training-contract/decisions.md`.
